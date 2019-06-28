@@ -25,7 +25,7 @@ pricing = glueContext.create_dynamic_frame.from_catalog(database=args['DATABASE_
 print "Count: ", pricing.count()
 pricing.printSchema()
 
-estimate = Join.apply(frame1 = hpc, frame2 = pricing, keys1 = ["resources_used_mem_gb", "resource_list_cores"], keys2 = ["memory", "vcpu"])
+estimate = Join.apply(frame1 = hpc, frame2 = pricing, keys1 = ["resource_list_cores"], keys2 = ["vcpu"])
 print "Count: ", estimate.count()
 estimate.printSchema()
 

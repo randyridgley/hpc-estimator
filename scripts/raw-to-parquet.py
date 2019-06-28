@@ -12,20 +12,35 @@ from pyspark.sql.functions import col, udf, explode, expr, to_timestamp, to_date
 ## @params: [JOB_NAME]
 args = getResolvedOptions(sys.argv, ['JOB_NAME', 'DATABASE_NAME', 'TABLE_NAME', 'S3_OUTPUT_PATH'])
 
+# need to cleanup parsing resource_list.nodes it has a number of combinations not sure I've found all
 @udf("map<string,string>")
 def map_keys(s):
     keys = {}
-    if s:    
-        try:
-            for x in s.split(" "):
-                if x.lower().startswith("resource_list.nodes"):
-                    kvs = [int(y.split("=")[1]) for y in x.split(":")]
-                    keys["resource_list_nodes"] = sum(kvs[1:])
-                else:
-                    kv = x.split("=")
-                    keys[kv[0].lower().replace('.', '_')] = kv[1]
-        except:
-            print(s)
+
+    if s:          
+      for x in s.split(" "):        
+        if x.lower().startswith("resource_list.nodes"):
+            kvs = x[len("resource_List."):].split(":")
+            
+            try:
+              gpu = kvs[2]
+              keys["resource_list_gpu"] = 1
+              keys["resource_list_gpu_type"] = gpu
+            except IndexError:
+              keys["resource_list_gpu"] = 0
+                
+            nodes = kvs[0].split('=')[1]
+
+            try:          
+              cpus = kvs[1].split('=')[1]
+            except IndexError:
+              cpus = 4 * nodes # this is a guess on how many cpus would be needed if not passed in
+
+            keys["resource_list_nodes"] = nodes
+            keys["resource_list_cpu"] = cpus
+        else:
+            kv = x.split("=")
+            keys[kv[0].lower().replace('.', '_')] = kv[1]
     return keys
 
 @udf("long")
@@ -80,8 +95,8 @@ with_map = with_map \
   .withColumn("end", expr("CAST(qtime AS LONG)")) \
   .withColumn("exit_status", expr("CAST(exit_status AS INTEGER)")) \
   .withColumnRenamed("group", "group_name") \
-  .withColumn("resource_list_cores", expr("CAST(resource_list_nodes as LONG) * CAST(resource_list_nodect as INTEGER)")) \
-  .drop('resources_used_vmem', 'session', 'kvs', 'exec_host', 'resource_list_neednodes', 'resource_list_nodes')
+  .withColumn("resource_list_cores", expr("CAST(resource_list_nodes as LONG) * CAST(resource_list_cpu as INTEGER)")) \
+  .drop('resources_used_vmem', 'kvs', 'exec_host', 'resource_list_neednodes', 'resource_list_nodes')
 
 torq = DynamicFrame.fromDF(with_map, glueContext, "joined")
 

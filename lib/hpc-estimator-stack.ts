@@ -11,6 +11,7 @@ export class HpcEstimatorStack extends cdk.Stack {
     super(scope, id, props);
 
     const customerName = this.node.tryGetContext("customerName");
+
     this.customerBucket = new s3.Bucket(this, 'CustomerHPCLogBucket', {
 
     });
@@ -18,7 +19,8 @@ export class HpcEstimatorStack extends cdk.Stack {
     new s3deploy.BucketDeployment(this, 'DeployGlueData', {
       source: s3deploy.Source.asset('./scripts'),
       destinationBucket: this.customerBucket,
-      destinationKeyPrefix: 'scripts'
+      destinationKeyPrefix: 'scripts',
+      retainOnDelete: false
     });
 
     const glueDatabaseName = customerName + '-db'
