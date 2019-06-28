@@ -99,7 +99,7 @@ def main(event, context):
                 WorkflowName=workflow_name,
                 Actions=[dict(CrawlerName=pricingCrawler)],
                 Predicate=dict(
-                    Logical='AND',
+                    Logical='ANY',
                     Conditions=[
                         dict(
                             JobName=pricingJob,
@@ -107,7 +107,8 @@ def main(event, context):
                             State='SUCCEEDED'
                         )
                     ]
-                )
+                ),
+                StartOnCreation=True
             )  
 
             pricing_response = client.create_trigger(**pricing_trigger)
@@ -119,7 +120,7 @@ def main(event, context):
                 WorkflowName=workflow_name,
                 Actions=[dict(JobName=parqJob)],
                 Predicate=dict(
-                    Logical='AND',
+                    Logical='ANY',
                     Conditions=[
                         dict(
                             CrawlerName=rawCrawler,
@@ -127,7 +128,8 @@ def main(event, context):
                             CrawlState='SUCCEEDED'
                         )
                     ]
-                )
+                ),
+                StartOnCreation=True
             )  
 
             raw_response = client.create_trigger(**raw_to_parq_trigger)
@@ -139,7 +141,7 @@ def main(event, context):
                 WorkflowName=workflow_name,
                 Actions=[dict(CrawlerName=parqCrawler)],
                 Predicate=dict(
-                    Logical='AND',
+                    Logical='ANY',
                     Conditions=[
                         dict(
                             JobName=parqJob,
@@ -147,7 +149,8 @@ def main(event, context):
                             State='SUCCEEDED'
                         )
                     ]
-                )
+                ),
+                StartOnCreation=True
             )  
 
             parq_response = client.create_trigger(**crawl_parq_trigger)
@@ -172,7 +175,8 @@ def main(event, context):
                             CrawlState='SUCCEEDED'
                         )
                     ]
-                )
+                ),
+                StartOnCreation=True
             )  
 
             wait_response = client.create_trigger(**wait_trigger)
@@ -184,7 +188,7 @@ def main(event, context):
                 WorkflowName=workflow_name,
                 Actions=[dict(CrawlerName=estimateCrawler)],
                 Predicate=dict(
-                    Logical='AND',
+                    Logical='ANY',
                     Conditions=[
                         dict(
                             JobName=estimateJob,
@@ -192,7 +196,8 @@ def main(event, context):
                             State='SUCCEEDED'
                         )
                     ]
-                )
+                ),
+                StartOnCreation=True
             )  
 
             estimate_crawl_response = client.create_trigger(**estimate_crawl_trigger)            

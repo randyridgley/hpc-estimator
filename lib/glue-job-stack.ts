@@ -25,9 +25,20 @@ export class GlueJobStack extends cdk.Stack {
             assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
             managedPolicies: [
                 iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'),
-                iam.ManagedPolicy.fromAwsManagedPolicyName('AWSPriceListServiceFullAccess'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AWSPriceListServiceFullAccess')                
             ]
         });
+
+        const azStatement = new iam.PolicyStatement({
+            actions: ['ec2:DescribeAvailabilityZones', 'ec2:DescribeSpotPriceHistory', 's3:PutObject'],
+            resources: ['*']
+        });
+
+        const azPolicy = new iam.Policy(this, "DescribeAZsPolicy", {
+            statements: [azStatement]
+        });
+
+        gluePricingJobRole.attachInlinePolicy(azPolicy)
 
         props.customerBucket.grantPut(gluePricingJobRole);
         props.customerBucket.grantRead(gluePricingJobRole);
@@ -36,10 +47,11 @@ export class GlueJobStack extends cdk.Stack {
             roleName: 'GlueETLJobServiceRole',
             assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
             managedPolicies: [
-                iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole')
+                iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess')
             ]
         });
-
+    
         props.customerBucket.grantPut(glueETLJobRole);
         props.customerBucket.grantRead(glueETLJobRole);
 
@@ -47,7 +59,8 @@ export class GlueJobStack extends cdk.Stack {
             roleName: 'GlueCrawlerServiceRole',
             assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
             managedPolicies: [
-                iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole')
+                iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess')
             ]
         });
 
@@ -145,7 +158,7 @@ export class GlueJobStack extends cdk.Stack {
             description: 'Convert raw HPC logs to parquet and remove unneeded fields',
             defaultArguments: {
                 "--DATABASE_NAME": props.database,
-                "--TABLE_NAME": 'o_hpc', // can I not hard code this value?
+                "--TABLE_NAME": 'o_raw', // can I not hard code this value?
                 "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/raw/pricing/',
                 "--REGION": this.region,
                 "--job-bookmark-option": "job-bookmark-enable"

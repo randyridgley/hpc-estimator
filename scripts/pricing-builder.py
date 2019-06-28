@@ -3,19 +3,20 @@ import boto3
 import pprint
 import pandas as pd
 import re
+import json
 from awsglue.utils import getResolvedOptions
 
 glue_client = boto3.client("glue")
-args = getResolvedOptions(sys.argv, ['JOB_NAME','WORKFLOW_NAME', 'WORKFLOW_RUN_ID', 'DATABASE_NAME', 'S3_OUTPUT_BUCKET', 'S3_OUTPUT_KEY' 'REGION'])
+args = getResolvedOptions(sys.argv, ['WORKFLOW_NAME', 'WORKFLOW_RUN_ID', 'DATABASE_NAME', 'S3_OUTPUT_BUCKET', 'S3_OUTPUT_KEY', 'REGION'])
 workflow_name = args['WORKFLOW_NAME']
 workflow_run_id = args['WORKFLOW_RUN_ID']
 instance_types = ['c', 'm', 'r', 'p']
 
-if workflow_name:
-    workflow_params = glue_client.get_workflow_run_properties(Name=workflow_name,
-                                        RunId=workflow_run_id)["RunProperties"]
-    # target_database = workflow_params['target_database']
-    # target_s3_location = workflow_params['target_s3_location']
+# if workflow_name:
+#     workflow_params = glue_client.get_workflow_run_properties(Name=workflow_name,
+#                                         RunId=workflow_run_id)["RunProperties"]
+#     # target_database = workflow_params['target_database']
+#     # target_s3_location = workflow_params['target_s3_location']
 
 region = args['REGION']
 availability_zones = []
