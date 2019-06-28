@@ -7,10 +7,11 @@ import json
 from awsglue.utils import getResolvedOptions
 
 glue_client = boto3.client("glue")
-args = getResolvedOptions(sys.argv, ['WORKFLOW_NAME', 'WORKFLOW_RUN_ID', 'DATABASE_NAME', 'S3_OUTPUT_BUCKET', 'S3_OUTPUT_KEY', 'REGION'])
+instance_types = ['c', 'm', 'r', 'p']
+args = getResolvedOptions(sys.argv, [
+                          'WORKFLOW_NAME', 'WORKFLOW_RUN_ID', 'S3_OUTPUT_BUCKET', 'S3_OUTPUT_KEY', 'REGION'])
 workflow_name = args['WORKFLOW_NAME']
 workflow_run_id = args['WORKFLOW_RUN_ID']
-instance_types = ['c', 'm', 'r', 'p']
 
 # if workflow_name:
 #     workflow_params = glue_client.get_workflow_run_properties(Name=workflow_name,
@@ -62,63 +63,65 @@ d = []
 next_token = ""
 
 while next_token is not None:
-	response = pricing.get_products(
-	     ServiceCode='AmazonEC2',
-	     Filters = [
-	         {'Type' :'TERM_MATCH', 'Field':'operatingSystem',    'Value':'Linux'              },
-	         {'Type' :'TERM_MATCH', 'Field':'location',           'Value':region_map[region] },
-			 {'Type' :'TERM_MATCH', 'Field':'preInstalledSw',     'Value':'NA'},
-			 {'Type' :'TERM_MATCH', 'Field':'tenancy',            'Value':'Shared'},
-		     {'Type' :'TERM_MATCH', 'Field':'capacityStatus',     'Value':'Used'},
-			 {'Type' :'TERM_MATCH', 'Field':'currentGeneration',  'Value':'yes'},	     	 
-	     ],
-	     MaxResults=100,
-	     NextToken=next_token
-	)
+    response = pricing.get_products(
+        ServiceCode='AmazonEC2',
+        Filters=[
+            {'Type': 'TERM_MATCH', 'Field': 'operatingSystem',    'Value': 'Linux'},
+            {'Type': 'TERM_MATCH', 'Field': 'location',
+                'Value': region_map[region]},
+            {'Type': 'TERM_MATCH', 'Field': 'preInstalledSw',     'Value': 'NA'},
+            {'Type': 'TERM_MATCH', 'Field': 'tenancy',            'Value': 'Shared'},
+            {'Type': 'TERM_MATCH', 'Field': 'capacityStatus',     'Value': 'Used'},
+            {'Type': 'TERM_MATCH', 'Field': 'currentGeneration',  'Value': 'yes'},
+        ],
+        MaxResults=100,
+        NextToken=next_token
+    )
 
-	for product in response['PriceList']:
-		pp = json.loads(product)
-		qq = json.loads(json.dumps(pp['product']['attributes']))
-		rr = json.loads(json.dumps(pp['terms']['OnDemand']))
-		ss = rr[list(rr.keys())[0]]['priceDimensions']
-		tt = ss[list(ss.keys())[0]]['pricePerUnit']['USD']
-		
-		spot_prices=ec2.describe_spot_price_history(
-		    Filters=filters,
-		    InstanceTypes=[qq['instanceType']],
-		    ProductDescriptions=product_descriptions,
-		    MaxResults=len(region_response['AvailabilityZones'])
-		)
+    for product in response['PriceList']:
+        pp = json.loads(product)
+        qq = json.loads(json.dumps(pp['product']['attributes']))
+        rr = json.loads(json.dumps(pp['terms']['OnDemand']))
+        ss = rr[list(rr.keys())[0]]['priceDimensions']
+        tt = ss[list(ss.keys())[0]]['pricePerUnit']['USD']
 
-		lowest = 99
-		discount = 0
+        spot_prices = ec2.describe_spot_price_history(
+            Filters=filters,
+            InstanceTypes=[qq['instanceType']],
+            ProductDescriptions=product_descriptions,
+            MaxResults=len(region_response['AvailabilityZones'])
+        )
 
-		for price in spot_prices['SpotPriceHistory']:
-		    if float(price['SpotPrice']) < lowest:
-		        lowest = float(price['SpotPrice'])
-	    
-		if lowest != 99:    
-			discount = int(((float(tt) - float(lowest)) / float(tt)) * 100.00)
-		else:
-			lowest = 0
+        lowest = 99
+        discount = 0
+
+        for price in spot_prices['SpotPriceHistory']:
+            if float(price['SpotPrice']) < lowest:
+                lowest = float(price['SpotPrice'])
+
+        if lowest != 99:
+            discount = int(((float(tt) - float(lowest)) / float(tt)) * 100.00)
+        else:
+            lowest = 0
 
         if qq['instanceType'][0].lower() in instance_types:
             d.append({
                 'instanceType': qq['instanceType'],
-                'vCPU': qq['vcpu'], 
-                'memory': '{:05.2f}'.format(float(numbers.findall(qq['memory'].replace(",", ""))[0])), 
+                'vCPU': qq['vcpu'],
+                'memory': '{:05.2f}'.format(float(numbers.findall(qq['memory'].replace(",", ""))[0])),
                 'onDemandPrice': '{:02.5f}'.format(float(tt)),
                 'spotPrice': '{:02.5f}'.format(float(lowest)),
                 'discount': discount
             })
 
-	if "NextToken" not in response:
-		break
-	next_token = response['NextToken']    
+    if "NextToken" not in response:
+        break
+    next_token = response['NextToken']
 
 df = pd.DataFrame(d)
 csv_file = '{0}-pricing.csv'.format(region)
-df.to_csv(csv_file, mode = 'w', index=False)
+df.to_csv(csv_file, mode='w', index=False)
 
 s3 = boto3.resource('s3', region_name=region)
-s3.meta.client.upload_file(csv_file, args['S3_OUTPUT_BUCKET'], args['S3_OUTPUT_KEY'])
+s3.meta.client.upload_file(
+    csv_file, args['S3_OUTPUT_BUCKET'], args['S3_OUTPUT_KEY'])

@@ -80,8 +80,8 @@ with_map = with_map \
   .withColumn("end", expr("CAST(qtime AS LONG)")) \
   .withColumn("exit_status", expr("CAST(exit_status AS INTEGER)")) \
   .withColumnRenamed("group", "group_name") \
-  .withColumn("resource_list_cores", expr("CAST(resource_list_nodes as LONG)")) \
-  .drop('resources_used_vmem', 'session', 'detail', 'kvs', 'exec_host', 'resource_list_neednodes', 'resource_list_nodes')
+  .withColumn("resource_list_cores", expr("CAST(resource_list_nodes as LONG) * CAST(resource_list_nodect as INTEGER)")) \
+  .drop('resources_used_vmem', 'session', 'kvs', 'exec_host', 'resource_list_neednodes', 'resource_list_nodes')
 
 torq = DynamicFrame.fromDF(with_map, glueContext, "joined")
 

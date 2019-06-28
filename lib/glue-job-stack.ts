@@ -136,7 +136,6 @@ export class GlueJobStack extends cdk.Stack {
             name: pricingJobName,
             description: 'AWS Pricing for OnDemand and Spot instances for HPC jobs',
             defaultArguments: {
-                "--DATABASE_NAME": props.database,
                 "--S3_OUTPUT_BUCKET": props.customerBucket.bucketName,
                 "--S3_OUTPUT_KEY": 'raw/pricing/' + this.region + '-pricing.csv',
                 "--REGION": this.region
