@@ -138,7 +138,7 @@ export class GlueJobStack extends cdk.Stack {
             defaultArguments: {
                 "--DATABASE_NAME": props.database,
                 "--S3_OUTPUT_BUCKET": props.customerBucket.bucketName,
-                "--S3_OUTPUT_KEY": '/raw/pricing/',
+                "--S3_OUTPUT_KEY": 'raw/pricing/' + this.region + '-pricing.csv',
                 "--REGION": this.region
             },
             maxRetries: 0,
@@ -159,7 +159,7 @@ export class GlueJobStack extends cdk.Stack {
             defaultArguments: {
                 "--DATABASE_NAME": props.database,
                 "--TABLE_NAME": 'o_raw', // can I not hard code this value?
-                "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/raw/pricing/',
+                "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/processed/hpc/',
                 "--REGION": this.region,
                 "--job-bookmark-option": "job-bookmark-enable"
             },
@@ -182,7 +182,7 @@ export class GlueJobStack extends cdk.Stack {
             defaultArguments: {
                 "--DATABASE_NAME": props.database,
                 "--TABLE_NAME": 'p_hpc', // can I not hard code this value?
-                "--PRICING_NAME": 'o_pricing',
+                "--PRICING_TABLE_NAME": 'o_pricing',
                 "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/raw/estimate/',
                 "--REGION": this.region,
                 "--job-bookmark-option": "job-bookmark-enable"
@@ -194,7 +194,7 @@ export class GlueJobStack extends cdk.Stack {
             }
         })
 
-        const resource = new GlueWorkflowResource(this, 'GlueWorkflowResource', {
+        new GlueWorkflowResource(this, 'GlueWorkflowResource', {
             rawCrawler: rawCrawlerName,
             parqCrawler: parqCrawlerName,
             pricingCrawler: pricingCrawlerName,

@@ -121,4 +121,4 @@ csv_file = '{0}-pricing.csv'.format(region)
 df.to_csv(csv_file, mode = 'w', index=False)
 
 s3 = boto3.resource('s3', region_name=region)
-s3.meta.client.upload_file(csv_file, 'analytics-serverless-west', 'pricing/us_west_2_pricing.csv')
+s3.meta.client.upload_file(csv_file, args['S3_OUTPUT_BUCKET'], args['S3_OUTPUT_KEY'])

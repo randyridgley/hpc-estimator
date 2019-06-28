@@ -71,7 +71,7 @@ with_map = with_map.select(*["*"] + [col("kvs").getItem(k).alias(k) for k in key
 with_map = with_map \
   .withColumn("resources_used_walltime_secs", get_sec("resources_used_walltime")) \
   .withColumn("resource_list_walltime_secs", get_sec("resource_list_walltime")) \
-  .withColumn("resources_used_mem_gb", expr("round(CAST(substring(resources_used_mem, 1, length(resources_used_mem)-2) AS LONG) * 0.0001, 0)")) \
+  .withColumn("resources_used_mem_gb", expr("CAST(round(CAST(substring(resources_used_mem, 1, length(resources_used_mem)-2) AS LONG) * 0.0001, 0) as LONG)")) \
   .withColumn("resource_list_nodect", expr("CAST(resource_list_nodect AS INTEGER)")) \
   .withColumn("qtime", expr("CAST(qtime AS LONG)")) \
   .withColumn("start", expr("CAST(start AS LONG)")) \
@@ -80,8 +80,8 @@ with_map = with_map \
   .withColumn("end", expr("CAST(qtime AS LONG)")) \
   .withColumn("exit_status", expr("CAST(exit_status AS INTEGER)")) \
   .withColumnRenamed("group", "group_name") \
-  .withColumnRenamed("resource_list_nodes", "resource_list_cores") \
-  .drop('resources_used_vmem', 'session', 'detail', 'kvs', 'exec_host', 'resource_list_neednodes')
+  .withColumn("resource_list_cores", expr("CAST(resource_list_nodes as LONG)")) \
+  .drop('resources_used_vmem', 'session', 'detail', 'kvs', 'exec_host', 'resource_list_neednodes', 'resource_list_nodes')
 
 torq = DynamicFrame.fromDF(with_map, glueContext, "joined")
 
