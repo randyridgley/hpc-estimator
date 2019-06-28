@@ -10,7 +10,7 @@ from pyspark.sql import types as T
 from pyspark.sql.functions import col, udf, explode, expr, to_timestamp, to_date, year, month, dayofmonth, hour, split
 
 ## @params: [JOB_NAME]
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'DATABASE_NAME', 'TABLE_NAME'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'DATABASE_NAME', 'TABLE_NAME', 'S3_OUTPUT_PATH'])
 
 @udf("map<string,string>")
 def map_keys(s):
@@ -85,6 +85,6 @@ with_map = with_map \
 
 torq = DynamicFrame.fromDF(with_map, glueContext, "joined")
 
-datasink5 = glueContext.write_dynamic_frame.from_options(frame = torq, connection_type = "s3", connection_options = {"path": 's3://'+args['S3_OUTPUT_PATH'], "partitionKeys": ["year", "month", "day"]}, format="parquet", transformation_ctx="datasink5")
+datasink5 = glueContext.write_dynamic_frame.from_options(frame = torq, connection_type = "s3", connection_options = {"path": args['S3_OUTPUT_PATH'], "partitionKeys": ["year", "month", "day"]}, format="parquet", transformation_ctx="datasink5")
 
 job.commit()
