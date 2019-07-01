@@ -39,7 +39,7 @@ cpu_cross_df = cpu_df.crossJoin(pricing_df)
 print "Count: ", cpu_cross_df.count()
 
 cpu_window = Window.partitionBy(cpu_cross_df['id']).orderBy(cpu_cross_df['spotprice'].asc())
-cpu_cross_df = cpu_cross_df.filter(col('memory') >= col('resources_used_mem_gb'))
+cpu_cross_df = cpu_cross_df.filter(col('vcpu') >= col('resource_list_cpu')).filter(col('memory') >= col('resources_used_mem_gb'))
 cpu_df = cpu_cross_df.select('*', row_number().over(cpu_window).alias('rank')).filter(col('rank') == 1) 
 
 gpu_df = hpc_gpu.toDF()
@@ -47,7 +47,7 @@ gpu_cross_df = gpu_df.crossJoin(pricing_df)
 print "Count: ", gpu_cross_df.count()
 
 gpu_window = Window.partitionBy(gpu_cross_df['id']).orderBy(gpu_cross_df['spotprice'].asc())
-gpu_cross_df = gpu_cross_df.filter(col('memory') >= col('resources_used_mem_gb'))
+gpu_cross_df = gpu_cross_df.filter(col('vcpu') >= col('resource_list_cpu')).filter(col('memory') >= col('resources_used_mem_gb'))
 gpu_df = gpu_cross_df.select('*', row_number().over(gpu_window).alias('rank')).filter(col('rank') == 1) 
 
 df_estimate = cpu_df.union(gpu_df)
