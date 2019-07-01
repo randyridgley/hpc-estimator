@@ -6,7 +6,6 @@ import { GlueWorkflowResource } from './glue-workflow-resource';
 import path = require('path')
 
 interface GlueStackProps extends cdk.StackProps {
-    database: string;
     customerBucket: s3.Bucket;
 }
 
@@ -20,6 +19,11 @@ export class GlueJobStack extends cdk.Stack {
         const customerLogBucket = this.node.tryGetContext("customerLogBucket");
         const customerLogKey = this.node.tryGetContext("customerLogKey");
     
+        const glueDatabaseName = customerName + '-db'
+        const database = new glue.Database(this, 'GlueDatabase', {
+            databaseName: glueDatabaseName
+        });
+
         const gluePricingJobRole = new iam.Role(this, 'GluePricingJobRole', {
             roleName: 'GluePricingJobServiceRole',
             assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
@@ -68,7 +72,7 @@ export class GlueJobStack extends cdk.Stack {
 
         const rawCrawlerName = customerName + '-raw-crawler'
         new glue.CfnCrawler(this, 'RawHPCLogCrawler', {
-            databaseName: props.database,
+            databaseName: database.databaseName,
             name: rawCrawlerName,
             targets: {
                 s3Targets: [
@@ -83,7 +87,7 @@ export class GlueJobStack extends cdk.Stack {
 
         const parqCrawlerName = customerName + '-parq-crawler'
         new glue.CfnCrawler(this, 'ProcessedHPCLogCrawler', {
-            databaseName: props.database,
+            databaseName: database.databaseName,
             name: parqCrawlerName,
             targets: {
                 s3Targets: [
@@ -98,7 +102,7 @@ export class GlueJobStack extends cdk.Stack {
 
         const estimateCrawlerName = customerName + '-estimate-crawler'
         new glue.CfnCrawler(this, 'CuratedHPCLogCrawler', {
-            databaseName: props.database,
+            databaseName: database.databaseName,
             name: estimateCrawlerName,
             targets: {
                 s3Targets: [
@@ -113,7 +117,7 @@ export class GlueJobStack extends cdk.Stack {
 
         const pricingCrawlerName = customerName + '-pricing-crawler'
         new glue.CfnCrawler(this, 'AWSPricingCrawler', {
-            databaseName: props.database,
+            databaseName: database.databaseName,
             name: pricingCrawlerName,
             targets: {
                 s3Targets: [
@@ -156,7 +160,7 @@ export class GlueJobStack extends cdk.Stack {
             name: parqJobName,
             description: 'Convert raw HPC logs to parquet and remove unneeded fields',
             defaultArguments: {
-                "--DATABASE_NAME": props.database,
+                "--DATABASE_NAME": database.databaseName,
                 "--TABLE_NAME": 'o_raw', // can I not hard code this value?
                 "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/processed/hpc/',
                 "--REGION": this.region,
@@ -179,10 +183,10 @@ export class GlueJobStack extends cdk.Stack {
             name: estimateJobName,
             description: 'Calculate job costs based on merging EC2 pricing with HPC Logs based on CPU and Memory',
             defaultArguments: {
-                "--DATABASE_NAME": props.database,
+                "--DATABASE_NAME": database.databaseName,
                 "--TABLE_NAME": 'p_hpc', // can I not hard code this value?
                 "--PRICING_TABLE_NAME": 'o_pricing',
-                "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/raw/estimate/',
+                "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/processed/estimate/',
                 "--REGION": this.region,
                 "--job-bookmark-option": "job-bookmark-enable"
             },

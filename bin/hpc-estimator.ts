@@ -8,6 +8,5 @@ const app = new cdk.App();
 const hpcStack = new HpcEstimatorStack(app, 'SetupStack');
 
 new GlueJobStack(app, "GlueJobStack", {
-    database: hpcStack.glueDatabase.databaseName,
     customerBucket: hpcStack.customerBucket
 }).addDependency(hpcStack)

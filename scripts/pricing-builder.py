@@ -108,7 +108,7 @@ while next_token is not None:
             d.append({
                 'instanceType': qq['instanceType'],
                 'vCPU': qq['vcpu'],
-                'memory': '{:05.2f}'.format(float(numbers.findall(qq['memory'].replace(",", ""))[0])),
+                'memory': '{0}'.format(int(round(float(numbers.findall(qq['memory'].replace(",", ""))[0])))),
                 'onDemandPrice': '{:02.5f}'.format(float(tt)),
                 'spotPrice': '{:02.5f}'.format(float(lowest)),
                 'discount': discount

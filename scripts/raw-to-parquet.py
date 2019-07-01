@@ -1,4 +1,5 @@
 import sys
+import math
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
@@ -7,7 +8,7 @@ from awsglue.job import Job
 from awsglue.dynamicframe import DynamicFrame
 
 from pyspark.sql import types as T
-from pyspark.sql.functions import col, udf, explode, expr, to_timestamp, to_date, year, month, dayofmonth, hour, split
+from pyspark.sql.functions import col, udf, explode, expr, to_timestamp, to_date, year, month, dayofmonth, hour, split, monotonically_increasing_id
 
 ## @params: [JOB_NAME]
 args = getResolvedOptions(sys.argv, ['JOB_NAME', 'DATABASE_NAME', 'TABLE_NAME', 'S3_OUTPUT_PATH'])
@@ -34,7 +35,7 @@ def map_keys(s):
             try:          
               cpus = kvs[1].split('=')[1]
             except IndexError:
-              cpus = 4 * nodes # this is a guess on how many cpus would be needed if not passed in
+              cpus = 4 * int(nodes) # this is a guess on how many cpus would be needed if not passed in
 
             keys["resource_list_nodes"] = nodes
             keys["resource_list_cpu"] = cpus
@@ -48,6 +49,12 @@ def get_sec(time_str):
     if not time_str: return 0
     return long(sum(float(n) * m for n, m in zip(reversed(time_str.split(':')), (1, 60, 3600))))
     
+@udf("long")
+def convert_to_gb(kb):
+  if not kb: return 1
+  return long(math.ceil(float(kb[:len(kb)-2]) * 0.000001))
+
+
 sc = SparkContext()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
@@ -84,10 +91,13 @@ with_map = with_map.select(*["*"] + [col("kvs").getItem(k).alias(k) for k in key
 
 # change the data types and column names to be easier to query later
 with_map = with_map \
+  .withColumn("id", monotonically_increasing_id()) \
   .withColumn("resources_used_walltime_secs", get_sec("resources_used_walltime")) \
   .withColumn("resource_list_walltime_secs", get_sec("resource_list_walltime")) \
-  .withColumn("resources_used_mem_gb", expr("CAST(round(CAST(substring(resources_used_mem, 1, length(resources_used_mem)-2) AS LONG) * 0.0001, 0) as LONG)")) \
+  .withColumn("resources_used_mem_gb", convert_to_gb("resources_used_mem")) \
   .withColumn("resource_list_nodect", expr("CAST(resource_list_nodect AS INTEGER)")) \
+  .withColumn("resource_list_cpu", expr("CAST(resource_list_cpu AS INTEGER)")) \
+  .withColumn("resource_list_gpu", expr("CAST(resource_list_gpu AS INTEGER)")) \
   .withColumn("qtime", expr("CAST(qtime AS LONG)")) \
   .withColumn("start", expr("CAST(start AS LONG)")) \
   .withColumn("ctime", expr("CAST(qtime AS LONG)")) \
@@ -96,7 +106,8 @@ with_map = with_map \
   .withColumn("exit_status", expr("CAST(exit_status AS INTEGER)")) \
   .withColumnRenamed("group", "group_name") \
   .withColumn("resource_list_cores", expr("CAST(resource_list_nodes as LONG) * CAST(resource_list_cpu as INTEGER)")) \
-  .drop('resources_used_vmem', 'kvs', 'exec_host', 'resource_list_neednodes', 'resource_list_nodes')
+  .drop('resources_used_vmem', 'kvs', 'session', 'exec_host', 'resource_list_neednodes')
+# eventually drop detail and the asked resources to only use actually used
 
 torq = DynamicFrame.fromDF(with_map, glueContext, "joined")
 
