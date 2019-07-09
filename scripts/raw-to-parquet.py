@@ -93,7 +93,7 @@ with_map = with_map.select(*["*"] + [col("kvs").getItem(k).alias(k) for k in key
 with_map = with_map \
   .withColumn("id", monotonically_increasing_id()) \
   .withColumn("resources_used_walltime_secs", get_sec("resources_used_walltime")) \
-  .withColumn("resource_list_walltime_secs", get_sec("resource_list_walltime")) \
+  .withColumn("resources_used_cput", get_sec("resources_used_cput")) \
   .withColumn("resources_used_mem_gb", convert_to_gb("resources_used_mem")) \
   .withColumn("resource_list_nodect", expr("CAST(resource_list_nodect AS INTEGER)")) \
   .withColumn("resource_list_cpu", expr("CAST(resource_list_cpu AS INTEGER)")) \
@@ -106,7 +106,8 @@ with_map = with_map \
   .withColumn("exit_status", expr("CAST(exit_status AS INTEGER)")) \
   .withColumnRenamed("group", "group_name") \
   .withColumn("resource_list_cores", expr("CAST(resource_list_nodes as LONG) * CAST(resource_list_cpu as INTEGER)")) \
-  .drop('resources_used_vmem', 'kvs', 'session', 'exec_host', 'resource_list_neednodes')
+  .withColumn("resources_used_walltime_hrs", expr("cast(round((resources_used_walltime_secs / 60.00 / 60.00), 3) as float)")) \
+  .drop('resources_used_vmem', 'kvs', 'session', 'exec_host', 'resource_list_neednodes', 'resource_list_walltime', 'detail')
 # eventually drop detail and the asked resources to only use actually used
 
 torq = DynamicFrame.fromDF(with_map, glueContext, "joined")

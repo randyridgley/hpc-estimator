@@ -7,7 +7,6 @@ import json
 from awsglue.utils import getResolvedOptions
 
 glue_client = boto3.client("glue")
-instance_types = ['c', 'm', 'r', 'p']
 args = getResolvedOptions(sys.argv, [
                           'WORKFLOW_NAME', 'WORKFLOW_RUN_ID', 'S3_OUTPUT_BUCKET', 'S3_OUTPUT_KEY', 'REGION'])
 workflow_name = args['WORKFLOW_NAME']
@@ -62,6 +61,12 @@ region_map = {
 d = []
 next_token = ""
 
+# if the instance type is an a or n type or metal skip for now
+def is_exotic_type(inst_type):
+    instance_types = ['c', 'm', 'r', 'p']
+    inst = inst_type.split('.')
+    return inst[0].endswith('a') or inst[0].endswith('n') or inst[1].endswith('metal') or inst_type[0] not in instance_types
+
 while next_token is not None:
     response = pricing.get_products(
         ServiceCode='AmazonEC2',
@@ -104,14 +109,21 @@ while next_token is not None:
         else:
             lowest = 0
 
-        if qq['instanceType'][0].lower() in instance_types:
+        #refactor to single conditional
+        if not is_exotic_type(qq['instanceType'].lower()):      
+            gpu = 0
+
+            if 'gpu' in qq:
+                gpu = int(qq['gpu'])
+
             d.append({
                 'instanceType': qq['instanceType'],
                 'vCPU': qq['vcpu'],
                 'memory': '{0}'.format(int(round(float(numbers.findall(qq['memory'].replace(",", ""))[0])))),
                 'onDemandPrice': '{:02.5f}'.format(float(tt)),
                 'spotPrice': '{:02.5f}'.format(float(lowest)),
-                'discount': discount
+                'discount': discount,
+                'gpu': gpu
             })
 
     if "NextToken" not in response:

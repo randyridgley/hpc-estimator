@@ -24,7 +24,7 @@ export class GlueWorkflowResource extends cdk.Construct {
 
         const lambdaFunction = new lambda.SingletonFunction(this, 'Singleton', {
             uuid: 'f7d4f730-4ee1-11e8-9c2d-fa7ae01bbebc',
-            code: lambda.Code.asset(path.join(__dirname, 'lambda/workflow-lambda')),                
+            code: lambda.Code.asset('lambda/workflow-lambda'),                
             handler: 'index.main',
             runtime: lambda.Runtime.PYTHON_3_6,
         })

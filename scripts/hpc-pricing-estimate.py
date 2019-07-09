@@ -33,8 +33,13 @@ pricing = glueContext.create_dynamic_frame.from_catalog(database=args['DATABASE_
 print "Count: ", pricing.count()
 pricing.printSchema()
 
+gpu_pricing_df = pricing.toDF().filter("instancetype like 'p%'")
+print "Count: ", gpu_pricing_df.count()
+gpu_pricing_df.printSchema()
+
 cpu_df = hpc_cpu.toDF()
 pricing_df = pricing.toDF()
+
 cpu_cross_df = cpu_df.crossJoin(pricing_df)
 print "Count: ", cpu_cross_df.count()
 
@@ -43,7 +48,7 @@ cpu_cross_df = cpu_cross_df.filter(col('vcpu') >= col('resource_list_cpu')).filt
 cpu_df = cpu_cross_df.select('*', row_number().over(cpu_window).alias('rank')).filter(col('rank') == 1) 
 
 gpu_df = hpc_gpu.toDF()
-gpu_cross_df = gpu_df.crossJoin(pricing_df)
+gpu_cross_df = gpu_df.crossJoin(gpu_pricing_df)
 print "Count: ", gpu_cross_df.count()
 
 gpu_window = Window.partitionBy(gpu_cross_df['id']).orderBy(gpu_cross_df['spotprice'].asc())
@@ -52,6 +57,8 @@ gpu_df = gpu_cross_df.select('*', row_number().over(gpu_window).alias('rank')).f
 
 df_estimate = cpu_df.union(gpu_df)
 print "Count: ", df_estimate.count()
+
+df_estimate = df_estimate.withColumn("job_cost", expr("cast(round((spotprice * resource_list_nodect) * resources_used_walltime_hrs, 2) as float)"))
 
 df = DynamicFrame.fromDF(df_estimate, glueContext, "joined")
 
