@@ -1,0 +1,218 @@
+import cdk = require('@aws-cdk/core');
+import s3 = require('@aws-cdk/aws-s3');
+import glue = require('@aws-cdk/aws-glue');
+import iam = require('@aws-cdk/aws-iam');
+import { GlueWorkflowResource } from './glue-workflow-resource';
+import path = require('path')
+
+interface EstimateStackProps extends cdk.StackProps {
+    customerBucket: s3.Bucket;
+    glueDatabase: string;
+}
+
+export class EstimateStack extends cdk.Stack {
+    public readonly estimateJobName: string
+    public readonly estimateCrawlerName: string 
+    public readonly parqCrawlerName: string
+    public readonly rawCrawlerName: string
+    public readonly parqJob: string
+    public readonly slurmParqJobName: string
+    public readonly sgeParqJobName: string
+    public readonly torqueParqJobName: string
+
+    constructor(scope: cdk.Construct, id: string, props: EstimateStackProps) {
+        super(scope, id, props);
+
+        const glueETLJobRole = new iam.Role(this, 'SGEETLJobRole', {
+            roleName: 'SGEETLJobServiceRole',
+            assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
+            managedPolicies: [
+                iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess')
+            ]
+        });
+    
+        props.customerBucket.grantPut(glueETLJobRole);
+        props.customerBucket.grantRead(glueETLJobRole);
+
+        const glueCrawlerRole = new iam.Role(this, 'SGECrawlerRole', {
+            roleName: 'SGECrawlerServiceRole',
+            assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
+            managedPolicies: [
+                iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSGlueServiceRole'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess')
+            ]
+        });
+
+        props.customerBucket.grantRead(glueCrawlerRole);
+
+        this.rawCrawlerName = 'hpc-raw-crawler'
+        new glue.CfnCrawler(this, 'HPCRawCrawler', {
+            databaseName: props.glueDatabase,
+            name: this.rawCrawlerName,
+            targets: {
+                s3Targets: [
+                    {
+                        path: props.customerBucket.bucketName + '/raw/hpc/'
+                    }
+                ]
+            },
+            role: glueCrawlerRole.roleName,
+            tablePrefix: 'o_'
+        })
+
+        this.parqCrawlerName = 'hpc-parq-crawler'
+        new glue.CfnCrawler(this, 'HPCParquetCrawler', {
+            databaseName: props.glueDatabase,
+            name: this.parqCrawlerName,
+            targets: {
+                s3Targets: [
+                    {
+                        path: props.customerBucket.bucketName + '/processed/hpc/'
+                    }
+                ]
+            },
+            role: glueCrawlerRole.roleName,
+            tablePrefix: 'p_'
+        })
+
+        this.estimateCrawlerName = 'hpc-estimate-crawler'
+        new glue.CfnCrawler(this, 'HPCEstimateCrawler', {
+            databaseName: props.glueDatabase,
+            name: this.estimateCrawlerName,
+            targets: {
+                s3Targets: [
+                    {
+                        path: props.customerBucket.bucketName + '/processed/estimate/'
+                    }
+                ]
+            },
+            role: glueCrawlerRole.roleName,
+            tablePrefix: 'p_sge_'
+        })
+
+        this.sgeParqJobName = 'sge-raw-to-parquet-etl'
+        new glue.CfnJob(this, 'SGERawToParquet', {
+            role: glueETLJobRole.roleName,
+            command: {
+                name: "glueetl",
+                scriptLocation: 's3://' + props.customerBucket.bucketName + '/scripts/sge-raw-to-parquet.py'
+            },
+            name: this.sgeParqJobName,
+            description: 'Convert raw HPC logs to parquet and remove unneeded fields',
+            defaultArguments: {
+                "--DATABASE_NAME": props.glueDatabase,
+                "--TABLE_NAME": 'o_raw', // can I not hard code this value?
+                "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/processed/hpc/',
+                "--REGION": this.region,
+                "--job-bookmark-option": "job-bookmark-enable"
+            },
+            allocatedCapacity: 10,
+            maxRetries: 0,
+            executionProperty: {
+                maxConcurrentRuns: 1
+            }
+        })
+
+        this.slurmParqJobName = 'slurm-raw-to-parquet-etl'
+        new glue.CfnJob(this, 'SlurmRawToParquet', {
+            role: glueETLJobRole.roleName,
+            command: {
+                name: "glueetl",
+                scriptLocation: 's3://' + props.customerBucket.bucketName + '/scripts/slurm-raw-to-parquet.py'
+            },
+            name: this.slurmParqJobName,
+            description: 'Convert raw HPC logs to parquet and remove unneeded fields',
+            defaultArguments: {
+                "--DATABASE_NAME": props.glueDatabase,
+                "--TABLE_NAME": 'o_raw', // can I not hard code this value?
+                "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/processed/hpc/',
+                "--REGION": this.region,
+                "--job-bookmark-option": "job-bookmark-enable"
+            },
+            allocatedCapacity: 10,
+            maxRetries: 0,
+            executionProperty: {
+                maxConcurrentRuns: 1
+            }
+        })
+
+        this.torqueParqJobName = 'torque-raw-to-parquet-etl'
+        new glue.CfnJob(this, 'TorqueRawToParquet', {
+            role: glueETLJobRole.roleName,
+            command: {
+                name: "glueetl",
+                scriptLocation: 's3://' + props.customerBucket.bucketName + '/scripts/torque-raw-to-parquet.py'
+            },
+            name: this.torqueParqJobName,
+            description: 'Convert raw HPC logs to parquet and remove unneeded fields',
+            defaultArguments: {
+                "--DATABASE_NAME": props.glueDatabase,
+                "--TABLE_NAME": 'o_raw', // can I not hard code this value?
+                "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/processed/hpc/',
+                "--REGION": this.region,
+                "--job-bookmark-option": "job-bookmark-enable"
+            },
+            allocatedCapacity: 10,
+            maxRetries: 0,
+            executionProperty: {
+                maxConcurrentRuns: 1
+            }
+        })
+
+        this.estimateJobName = 'hpc-pricing-estimate-etl'
+        new glue.CfnJob(this, 'CalculatePricingEstimate', {
+            role: glueETLJobRole.roleName,
+            command: {
+                name: "glueetl",
+                scriptLocation: 's3://' + props.customerBucket.bucketName + '/scripts/pricing-estimate.py'
+            },
+            name: this.estimateJobName,
+            description: 'Calculate job costs based on merging EC2 pricing with HPC Logs based on CPU and Memory',
+            defaultArguments: {
+                "--DATABASE_NAME": props.glueDatabase,
+                "--TABLE_NAME": 'p_hpc', // can I not hard code this value?
+                "--PRICING_TABLE_NAME": 'o_pricing',
+                "--S3_OUTPUT_PATH": 's3://' + props.customerBucket.bucketName + '/processed/estimate/',
+                "--REGION": this.region,
+                "--job-bookmark-option": "job-bookmark-enable"
+            },
+            allocatedCapacity: 10,
+            maxRetries: 0,
+            executionProperty: {
+                maxConcurrentRuns: 1
+            }
+        })
+
+        this.estimateJobName = 'pricing-estimate-builder'
+        new glue.CfnJob(this, 'EstimatePricingGenerator', {
+            role: glueETLJobRole.roleName,
+            command: {
+                name: "pythonshell",
+                scriptLocation: 's3://' + props.customerBucket.bucketName + '/scripts/pricing-estimate-builder.py',
+            },
+            name: this.estimateJobName,
+            description: 'AWS Pricing for OnDemand and Spot instances for HPC jobs',
+            defaultArguments: {
+                "--CUSTOMER": 'test',
+                "--SCHEDULE_TYPE": 'torque',
+                "--REGION": this.region
+            },
+            maxRetries: 0,
+            executionProperty: {
+                maxConcurrentRuns: 1
+            }
+        })
+        // new GlueWorkflowResource(this, 'SGEWorkflowResource', {
+        //     rawCrawler: rawCrawlerName,
+        //     parqCrawler: parqCrawlerName,
+        //     pricingCrawler: props.pricingCrawler,
+        //     estimateCrawler: estimateCrawlerName,
+        //     pricingJob: props.pricingJob,
+        //     parqJob: parqJobName,
+        //     estimateJob: estimateJobName,
+        //     customerName: customerName,
+        //     hpcName: 'sge'
+        // });
+    }
+}

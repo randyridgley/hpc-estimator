@@ -14,6 +14,7 @@ export interface GlueWorkflowResourceProps {
     parqJob: string;
     estimateJob: string;
     customerName:string;
+    hpcName:string;
 }
 
 export class GlueWorkflowResource extends cdk.Construct {

@@ -10,18 +10,21 @@
     "cdk": "cdk"
   },
   "devDependencies": {
-    "@types/node": "8.10.45",
-    "typescript": "^3.3.3333",
-    "ts-node": "^8.1.0",
-    "aws-cdk": "^0.36.0"
+    "@types/node": "12.6.2",
+    "aws-cdk": "^0.39.0",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.3"
   },
   "dependencies": {
-    "@aws-cdk/assets": "^0.36.0",
-    "@aws-cdk/aws-glue": "^0.36.0",
-    "@aws-cdk/aws-iam": "^0.36.0",
-    "@aws-cdk/aws-s3": "^0.36.0",
-    "@aws-cdk/aws-s3-deployment": "^0.36.0",
-    "@aws-cdk/core": "^0.36.0",
-    "source-map-support": "^0.5.9"
+    "@aws-cdk/assets": "^0.39.0",
+    "@aws-cdk/aws-apigateway": "^0.39.0",
+    "@aws-cdk/aws-dynamodb": "^0.39.0",
+    "@aws-cdk/aws-glue": "^0.39.0",
+    "@aws-cdk/aws-iam": "^0.39.0",
+    "@aws-cdk/aws-s3": "^0.39.0",
+    "@aws-cdk/aws-s3-deployment": "^0.39.0",
+    "@aws-cdk/core": "^0.39.0",
+    "npm-check-updates": "^3.1.18",
+    "source-map-support": "^0.5.12"
   }
 }

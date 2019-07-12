@@ -58,14 +58,15 @@ region_map = {
     'us-west-1': 'US West (N. California)',
 }
 
-d = []
-next_token = ""
 
 # if the instance type is an a or n type or metal skip for now
 def is_exotic_type(inst_type):
     instance_types = ['c', 'm', 'r', 'p']
     inst = inst_type.split('.')
     return inst[0].endswith('a') or inst[0].endswith('n') or inst[1].endswith('metal') or inst_type[0] not in instance_types
+
+d = []
+next_token = ""
 
 while next_token is not None:
     response = pricing.get_products(
@@ -109,8 +110,7 @@ while next_token is not None:
         else:
             lowest = 0
 
-        #refactor to single conditional
-        if not is_exotic_type(qq['instanceType'].lower()):      
+        if not is_exotic_type(qq['instanceType'].lower()):
             gpu = 0
 
             if 'gpu' in qq:
