@@ -26,8 +26,6 @@ new HPCServiceStack(app, "HPCServiceStack", {
     customerBucket: setupStack.customerBucket,
     glueDatabase: setupStack.glueDatabase.databaseName,
     parqCrawler: estimateStack.parqCrawlerName,
-    rawCrawler: estimateStack.rawCrawlerName,
-    pricingCrawler: pricingStack.pricingCrawlerName,
     estimateCrawler: estimateStack.estimateCrawlerName,
     pricingJob: pricingStack.pricingJobName,
     slurmParqJob: estimateStack.slurmParqJobName,

@@ -70,7 +70,7 @@ job.init(args['JOB_NAME'], args)
 
 torq = glueContext.create_dynamic_frame.from_catalog(
     database=args['DATABASE_NAME'], table_name=args['TABLE_NAME'])
-print "Count: ", torq.count()
+print("Count: ", torq.count())
 torq.printSchema()
 
 torqDF = torq.toDF()
