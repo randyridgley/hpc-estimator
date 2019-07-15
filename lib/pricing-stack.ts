@@ -9,7 +9,6 @@ interface PricingStackProps extends cdk.StackProps {
 }
 
 export class PricingStack extends cdk.Stack {
-    public readonly pricingCrawlerName: string
     public readonly pricingJobName: string 
 
     constructor(scope: cdk.Construct, id: string, props: PricingStackProps) {
@@ -62,21 +61,6 @@ export class PricingStack extends cdk.Stack {
         });
 
         props.customerBucket.grantRead(glueCrawlerRole);
-
-        this.pricingCrawlerName = customerName + '-pricing-crawler'
-        new glue.CfnCrawler(this, 'AWSPricingCrawler', {
-            databaseName: props.glueDatabase,
-            name: this.pricingCrawlerName,
-            targets: {
-                s3Targets: [
-                    {
-                        path: props.customerBucket.bucketName + '/raw/pricing/'
-                    }
-                ]
-            },
-            role: glueCrawlerRole.roleName,
-            tablePrefix: 'o_'
-        })
 
         this.pricingJobName = customerName + '-pricing-builder'
         new glue.CfnJob(this, 'AWSEC2PricingGenerator', {

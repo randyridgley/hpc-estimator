@@ -8,13 +8,16 @@ from awsglue.utils import getResolvedOptions
 
 glue_client = boto3.client("glue")
 args = getResolvedOptions(sys.argv, [
-                          'WORKFLOW_NAME', 'WORKFLOW_RUN_ID', 'S3_OUTPUT_BUCKET', 'S3_OUTPUT_KEY', 'REGION'])
+                          'WORKFLOW_NAME', 'WORKFLOW_RUN_ID',
+                          'S3_OUTPUT_BUCKET', 'S3_OUTPUT_KEY', 'REGION'])
 workflow_name = args['WORKFLOW_NAME']
 workflow_run_id = args['WORKFLOW_RUN_ID']
 
 # if workflow_name:
-#     workflow_params = glue_client.get_workflow_run_properties(Name=workflow_name,
-#                                         RunId=workflow_run_id)["RunProperties"]
+#     workflow_params = glue_client.get_workflow_run_properties(
+#                                         Name=workflow_name,
+#                                         RunId=workflow_run_id
+#     )["RunProperties"]
 #     # target_database = workflow_params['target_database']
 #     # target_s3_location = workflow_params['target_s3_location']
 
@@ -63,7 +66,10 @@ region_map = {
 def is_exotic_type(inst_type):
     instance_types = ['c', 'm', 'r', 'p']
     inst = inst_type.split('.')
-    return inst[0].endswith('a') or inst[0].endswith('n') or inst[1].endswith('metal') or inst_type[0] not in instance_types
+    return inst[0].endswith('a') \
+        or inst[0].endswith('n') \
+        or inst[1].endswith('metal') \
+        or inst_type[0] not in instance_types
 
 d = []
 next_token = ""
@@ -72,13 +78,18 @@ while next_token is not None:
     response = pricing.get_products(
         ServiceCode='AmazonEC2',
         Filters=[
-            {'Type': 'TERM_MATCH', 'Field': 'operatingSystem',    'Value': 'Linux'},
+            {'Type': 'TERM_MATCH', 'Field': 'operatingSystem',
+                'Value': 'Linux'},
             {'Type': 'TERM_MATCH', 'Field': 'location',
                 'Value': region_map[region]},
-            {'Type': 'TERM_MATCH', 'Field': 'preInstalledSw',     'Value': 'NA'},
-            {'Type': 'TERM_MATCH', 'Field': 'tenancy',            'Value': 'Shared'},
-            {'Type': 'TERM_MATCH', 'Field': 'capacityStatus',     'Value': 'Used'},
-            {'Type': 'TERM_MATCH', 'Field': 'currentGeneration',  'Value': 'yes'},
+            {'Type': 'TERM_MATCH', 'Field': 'preInstalledSw',
+                'Value': 'NA'},
+            {'Type': 'TERM_MATCH', 'Field': 'tenancy',
+                'Value': 'Shared'},
+            {'Type': 'TERM_MATCH', 'Field': 'capacityStatus',
+                'Value': 'Used'},
+            {'Type': 'TERM_MATCH', 'Field': 'currentGeneration',
+                'Value': 'yes'},
         ],
         MaxResults=100,
         NextToken=next_token

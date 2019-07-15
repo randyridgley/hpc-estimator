@@ -10,7 +10,6 @@ interface EstimateStackProps extends cdk.StackProps {
 
 export class EstimateStack extends cdk.Stack {
     public readonly estimateJobName: string
-    public readonly estimateCrawlerName: string 
     public readonly parqCrawlerName: string
     public readonly slurmParqJobName: string
     public readonly sgeParqJobName: string
@@ -50,21 +49,6 @@ export class EstimateStack extends cdk.Stack {
                 s3Targets: [
                     {
                         path: props.customerBucket.bucketName + '/processed/hpc/'
-                    }
-                ]
-            },
-            role: glueCrawlerRole.roleName,
-            tablePrefix: 'p_'
-        })
-
-        this.estimateCrawlerName = 'hpc-estimate-crawler'
-        new glue.CfnCrawler(this, 'HPCEstimateCrawler', {
-            databaseName: props.glueDatabase,
-            name: this.estimateCrawlerName,
-            targets: {
-                s3Targets: [
-                    {
-                        path: props.customerBucket.bucketName + '/processed/estimate/'
                     }
                 ]
             },
@@ -164,25 +148,5 @@ export class EstimateStack extends cdk.Stack {
                 maxConcurrentRuns: 1
             }
         })
-
-        // this.estimateJobName = 'pricing-estimate-builder'
-        // new glue.CfnJob(this, 'EstimatePricingGenerator', {
-        //     role: glueETLJobRole.roleName,
-        //     command: {
-        //         name: "pythonshell",
-        //         scriptLocation: 's3://' + props.customerBucket.bucketName + '/scripts/pricing-estimate-builder.py',
-        //     },
-        //     name: this.estimateJobName,
-        //     description: 'AWS Pricing for OnDemand and Spot instances for HPC jobs',
-        //     defaultArguments: {
-        //         "--CUSTOMER": 'test',
-        //         "--SCHEDULE_TYPE": 'torque',
-        //         "--REGION": this.region
-        //     },
-        //     maxRetries: 0,
-        //     executionProperty: {
-        //         maxConcurrentRuns: 1
-        //     }
-        // })
     }
 }

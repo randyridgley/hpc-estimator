@@ -9,7 +9,6 @@ interface HPCServiceStackProps extends cdk.StackProps {
     customerBucket: s3.Bucket;
     glueDatabase: string;
     parqCrawler: string;
-    estimateCrawler: string;
     pricingJob: string;
     estimateJob: string;
     slurmParqJob: string;
@@ -31,7 +30,6 @@ export class HPCServiceStack extends cdk.Stack {
             timeout: Duration.minutes(1),
             environment: {
                 PARQ_CRAWLER: props.parqCrawler,
-                ESTIMATE_CRAWLER: props.estimateCrawler,
                 PRICING_JOB: props.pricingJob,
                 SLURM_PARQ_JOB: props.slurmParqJob,
                 SGE_PARQ_JOB: props.sgeParqJob,

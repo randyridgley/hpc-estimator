@@ -24,6 +24,7 @@
     "@aws-cdk/aws-s3": "^0.39.0",
     "@aws-cdk/aws-s3-deployment": "^0.39.0",
     "@aws-cdk/core": "^0.39.0",
+    "cdk": "^1.0.0",
     "npm-check-updates": "^3.1.18",
     "source-map-support": "^0.5.12"
   }

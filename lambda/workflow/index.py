@@ -1,10 +1,6 @@
 import os
 import os.path
 import sys
-
-# envLambdaTaskRoot = os.environ["LAMBDA_TASK_ROOT"]
-# sys.path.insert(0, envLambdaTaskRoot)
-
 import tempfile
 import json
 import logging
@@ -74,7 +70,61 @@ def create_raw_table(raw_data_location, database_name, scheduler_type):
             }
         )
     elif scheduler_type == 'slurm':
-        print('create slurm table')
+        client.create_table(
+            CatalogId=account_id,
+            DatabaseName=database_name,
+            TableInput={
+                'Name': 'o_raw',
+                'Description': 'Raw HPC Logs for Slurm Scheduler',
+                'StorageDescriptor': {
+                    'Columns': [
+                        {
+                            'Name': 'jobid',
+                            'Type': 'string'
+                        },
+                        {
+                            'Name': 'elapsed',
+                            'Type': 'string'
+                        },
+                        {
+                            'Name': 'ncpus',
+                            'Type': 'bigint'
+                        },
+                        {
+                            'Name': 'state',
+                            'Type': 'string'
+                        },
+                        {
+                            'Name': 'user',
+                            'Type': 'string'
+                        },
+                        {
+                            'Name': 'partition',
+                            'Type': 'string'
+                        },
+                        {
+                            'Name': 'elapsedraw',
+                            'Type': 'bigint'
+                        }
+                    ],
+                    'Location': raw_data_location,
+                    'InputFormat': 'org.apache.hadoop.mapred.TextInputFormat',
+                    'OutputFormat': 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat',
+                    'SerdeInfo': {
+                        'SerializationLibrary': 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe',
+                        'Parameters': {
+                            'field.delim': '|'
+                        }
+                    }
+                },
+                'TableType': 'EXTERNAL_TABLE',
+                'Parameters': {
+                    'classification': 'csv',
+                    'delimiter': '|',
+                    'skip.header.line.count': '1',
+                }
+            }
+        )
     else:
         print('create sge table')
 
@@ -137,12 +187,186 @@ def create_pricing_table(database_name, pricing_location):
     )
 
 
+def create_estimate_table(database_name, estimate_location):
+    client.create_table(
+        CatalogId=account_id,
+        DatabaseName=database_name,
+        TableInput={
+            'Name': 'p_estimate',
+            'Description': 'HPC Logs Pricing Estimate Table',
+            'StorageDescriptor': {
+                'Columns': [
+                    {
+                        'Name': 'job_status',
+                        'Type': 'string'
+                    },
+                    {
+                        'Name': 'hour',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'gpu_type',
+                        'Type': 'string'
+                    },
+                    {
+                        'Name': 'queue',
+                        'Type': 'string'
+                    },
+                    {
+                        'Name': 'group_name',
+                        'Type': 'string'
+                    },
+                    {
+                        'Name': 'exit_status',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'user',
+                        'Type': 'string'
+                    },
+                    {
+                        'Name': 'job_name',
+                        'Type': 'string'
+                    },
+                    {
+                        'Name': 'etime',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'owner',
+                        'Type': 'string'
+                    },
+                    {
+                        'Name': 'id',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'walltime_secs',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'cpu_time',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'mem_gb',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'node_ct',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'num_cpus',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'num_gpus',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'queued_time',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'start_time',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'created_time',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'end_time',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'num_cores',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'walltime_hrs',
+                        'Type': 'float'
+                    },
+                    {
+                        'Name': 'cpu_time_hrs',
+                        'Type': 'float'
+                    },
+                    {
+                        'Name': 'year',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'month',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'day',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'discount',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'gpu',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'instancetype',
+                        'Type': 'string'
+                    },
+                    {
+                        'Name': 'memory',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'ondemandprice',
+                        'Type': 'double'
+                    },
+                    {
+                        'Name': 'spotprice',
+                        'Type': 'double'
+                    },
+                    {
+                        'Name': 'vcpu',
+                        'Type': 'bigint'
+                    },
+                    {
+                        'Name': 'rank',
+                        'Type': 'int'
+                    },
+                    {
+                        'Name': 'job_cost',
+                        'Type': 'float'
+                    }
+                ],
+                'Location': estimate_location,
+                'InputFormat': 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat',
+                'OutputFormat': 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat',
+                'SerdeInfo': {
+                    'SerializationLibrary': 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe',
+                    'Parameters': {
+                        'serialization.format': '1'
+                    }
+                },
+                'Parameters': {
+                    'classification': 'parquet'
+                }
+            },
+            'TableType': 'EXTERNAL_TABLE',
+            'Parameters': {
+                'classification': 'parquet'
+            }
+        }
+    )
+
+
 def create_workflow(body):
     logger.info(body)
 
     try:
         parq_crawler = os.environ['PARQ_CRAWLER']
-        estimate_crawler = os.environ['ESTIMATE_CRAWLER']
         pricing_job = os.environ['PRICING_JOB']
         slurm_parq_job = os.environ['SLURM_PARQ_JOB']
         sge_parq_job = os.environ['SGE_PARQ_JOB']
@@ -161,7 +385,7 @@ def create_workflow(body):
 
     logger.info('Creating workflow')
     workflow_name = '{0}-{1}'.format(schedule_type, workflow_name)
-    client.create_workflow(
+    resp = client.create_workflow(
         Name=workflow_name,
         Description='HPC Estimation workflow for {0}'.format(customer_name),
         DefaultRunProperties={
@@ -181,6 +405,10 @@ def create_workflow(body):
     create_pricing_table(
         database_name,
         's3://{0}/raw/pricing/'.format(workflow_bucket)
+    )
+    create_estimate_table(
+        database_name,
+        's3://{0}/processed/estimate/'.format(workflow_bucket)
     )
 
     logger.info('Creating Start Trigger')
@@ -254,28 +482,28 @@ def create_workflow(body):
 
     client.create_trigger(**wait_trigger)
 
-    logger.info('Creating Estimate Trigger')
-    estimate_crawl_trigger = dict(
-        Name='{0}_{1}'.format(schedule_type, estimate_trigger_name),
-        Description='Trigger to crawl estimate data set',
-        Type='CONDITIONAL',
-        WorkflowName=workflow_name,
-        Actions=[dict(CrawlerName=estimate_crawler)],
-        Predicate=dict(
-            Logical='ANY',
-            Conditions=[
-                dict(
-                    JobName=estimate_job,
-                    LogicalOperator='EQUALS',
-                    State='SUCCEEDED'
-                )
-            ]
-        ),
-        StartOnCreation=True
-    )
+    # logger.info('Creating Estimate Trigger')
+    # estimate_crawl_trigger = dict(
+    #     Name='{0}_{1}'.format(schedule_type, estimate_trigger_name),
+    #     Description='Trigger to crawl estimate data set',
+    #     Type='CONDITIONAL',
+    #     WorkflowName=workflow_name,
+    #     Actions=[dict(CrawlerName=estimate_crawler)],
+    #     Predicate=dict(
+    #         Logical='ANY',
+    #         Conditions=[
+    #             dict(
+    #                 JobName=estimate_job,
+    #                 LogicalOperator='EQUALS',
+    #                 State='SUCCEEDED'
+    #             )
+    #         ]
+    #     ),
+    #     StartOnCreation=True
+    # )
 
-    client.create_trigger(**estimate_crawl_trigger)
-    return '{status: \'OK\'}'
+    # client.create_trigger(**estimate_crawl_trigger)
+    return resp
 
 
 def run_workflow(body):

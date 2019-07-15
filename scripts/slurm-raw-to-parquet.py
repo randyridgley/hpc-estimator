@@ -68,17 +68,17 @@ spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args['JOB_NAME'], args)
 
-torq = glueContext.create_dynamic_frame.from_catalog(
+slurm = glueContext.create_dynamic_frame.from_catalog(
     database=args['DATABASE_NAME'], table_name=args['TABLE_NAME'])
-print("Count: ", torq.count())
-torq.printSchema()
+print("Count: ", slurm.count())
+slurm.printSchema()
 
-torqDF = torq.toDF()
+slurmDF = slurm.toDF()
 
-dt = split(torqDF.col0, ' ')
+dt = split(slurmDF.col0, ' ')
 
-torqDF = torqDF.select(col('col1').alias('job_status'), col('col3').alias('detail'),
-                       to_timestamp(torqDF.col0, 'MM/dd/yyyy HH:mm:ss').alias('o_dt'), torqDF.col0).where(torqDF.col1 == 'E') \
+slurmDF = slurmDF.select(col('state').alias('job_status'), col('col3').alias('detail'),
+    to_timestamp(slurmDF.col0, 'MM/dd/yyyy HH:mm:ss').alias('o_dt'), slurmDF.col0).where(slurmDF.col1 == 'E') \
     .select('job_status', 'detail', 'o_dt',
             to_date(col("o_dt"), "yyyy-MM-dd").alias('date'),
             year('o_dt').alias('year'),
@@ -86,7 +86,7 @@ torqDF = torqDF.select(col('col1').alias('job_status'), col('col3').alias('detai
             dayofmonth('o_dt').alias('day'),
             hour('o_dt').alias('hour'))
 
-with_map = torqDF.withColumn("kvs", map_keys("detail"))
+with_map = slurmDF.withColumn("kvs", map_keys("detail"))
 
 keys = (with_map
         .select(explode("kvs"))
@@ -120,9 +120,9 @@ with_map = with_map \
     .drop('resources_used_vmem', 'kvs', 'session', 'exec_host', 'resource_list_neednodes', 'resource_list_walltime', 'detail')
 # eventually drop detail and the asked resources to only use actually used
 
-torq = DynamicFrame.fromDF(with_map, glueContext, "joined")
+slurm = DynamicFrame.fromDF(with_map, glueContext, "joined")
 
-datasink5 = glueContext.write_dynamic_frame.from_options(frame=torq, connection_type="s3", connection_options={
+datasink5 = glueContext.write_dynamic_frame.from_options(frame=slurm, connection_type="s3", connection_options={
                                                          "path": args['S3_OUTPUT_PATH'], "partitionKeys": ["year", "month", "day"]}, format="parquet", transformation_ctx="datasink5")
 
 job.commit()

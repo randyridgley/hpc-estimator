@@ -101,23 +101,27 @@ with_map = with_map.select(
 # change the data types and column names to be easier to query later
 with_map = with_map \
     .withColumn("id", monotonically_increasing_id()) \
-    .withColumn("resources_used_walltime_secs", get_sec("resources_used_walltime")) \
-    .withColumn("resources_used_cput", get_sec("resources_used_cput")) \
-    .withColumn("resources_used_mem_gb", convert_to_gb("resources_used_mem")) \
-    .withColumn("resource_list_nodect", expr("CAST(resource_list_nodect AS INTEGER)")) \
-    .withColumn("resource_list_cpu", expr("CAST(resource_list_cpu AS INTEGER)")) \
-    .withColumn("resource_list_gpu", expr("CAST(resource_list_gpu AS INTEGER)")) \
-    .withColumn("qtime", expr("CAST(qtime AS LONG)")) \
-    .withColumn("start", expr("CAST(start AS LONG)")) \
-    .withColumn("ctime", expr("CAST(qtime AS LONG)")) \
-    .withColumn("etime", expr("CAST(qtime AS LONG)")) \
-    .withColumn("end", expr("CAST(qtime AS LONG)")) \
+    .withColumn("walltime_secs", get_sec("resources_used_walltime")) \
+    .withColumn("cpu_time", get_sec("resources_used_cput")) \
+    .withColumn("mem_gb", convert_to_gb("resources_used_mem")) \
+    .withColumn("node_ct", expr("CAST(resource_list_nodect AS INTEGER)")) \
+    .withColumn("num_cpus", expr("CAST(resource_list_cpu AS INTEGER)")) \
+    .withColumn("num_gpus", expr("CAST(resource_list_gpu AS INTEGER)")) \
+    .withColumn("queued_time", expr("CAST(qtime AS LONG)")) \
+    .withColumn("start_time", expr("CAST(start AS LONG)")) \
+    .withColumn("created_time", expr("CAST(ctime AS LONG)")) \
+    .withColumn("etime", expr("CAST(etime AS LONG)")) \
+    .withColumn("end_time", expr("CAST(end AS LONG)")) \
     .withColumn("exit_status", expr("CAST(exit_status AS INTEGER)")) \
     .withColumnRenamed("group", "group_name") \
-    .withColumn("resource_list_cores", expr("CAST(resource_list_nodes as LONG) * CAST(resource_list_cpu as INTEGER)")) \
-    .withColumn("resources_used_walltime_hrs", expr("cast(round((resources_used_walltime_secs / 60.00 / 60.00), 3) as float)")) \
-    .withColumn("resources_used_cput_hrs", expr("cast(round((resources_used_walltime_secs / 60.00 / 60.00), 3) as float)")) \
-    .drop('resources_used_vmem', 'kvs', 'session', 'exec_host', 'resource_list_neednodes', 'resource_list_walltime', 'detail')
+    .withColumnRenamed("jobname", "job_name") \
+    .withColumnRenamed("resource_list_gpu_type", "gpu_type") \
+    .withColumn("num_cores", expr("CAST(node_ct as LONG) * CAST(num_cpus as INTEGER)")) \
+    .withColumn("walltime_hrs", expr("cast(round((walltime_secs / 60.00 / 60.00), 3) as float)")) \
+    .withColumn("cpu_time_hrs", expr("cast(round((cpu_time / 60.00 / 60.00), 3) as float)")) \
+    .drop('resources_used_vmem', 'kvs', 'session', 'exec_host', 'resource_list_neednodes', 'resource_list_walltime', 'detail',
+          'resources_used_walltime', 'resources_used_cput', 'resources_used_mem', 'resource_list_nodect', 'resource_list_cpu',
+          'resource_list_gpu', 'qtime', 'start', 'ctime', 'etime', 'end', 'o_dt', 'date', 'resource_list_mem', 'resource_list_nodes')
 # eventually drop detail and the asked resources to only use actually used
 
 torq = DynamicFrame.fromDF(with_map, glueContext, "joined")
