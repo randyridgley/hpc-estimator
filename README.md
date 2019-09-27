@@ -15,4 +15,5 @@ to deploy it requires a few context variables for now but will be modified short
 ``` bash
 Slurm account command to get history
 sacct -S2019-01-01-00:01 -E2019-03-31-23:59 –parsable2 --format=jobid,elapsed,ncpus,state,user,partition,elapsedRAW > slurm-acct.txt
+
 ```
